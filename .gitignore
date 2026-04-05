@@ -1,0 +1,4 @@
+*.deb
+.flatpak-builder/
+build-dir/
+*.txt

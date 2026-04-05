@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=Stirling PDF
+GenericName=PDF Editor
+Comment=Edit, merge, split, sign, convert, and manipulate PDF files locally
+Exec=stirling-pdf-wrapper %F
+Icon=com.stirlingpdf.StirlingPDF
+Terminal=false
+Type=Application
+Categories=Office;Graphics;Viewer;
+MimeType=application/pdf;
+Keywords=pdf;merge;split;convert;sign;ocr;compress;edit;
+StartupNotify=true
+StartupWMClass=stirling-pdf
+SingleMainWindow=true

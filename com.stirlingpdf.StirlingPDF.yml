@@ -1,0 +1,230 @@
+# Flatpak manifest for Stirling PDF Desktop Application
+# https://github.com/Stirling-Tools/Stirling-PDF
+#
+# The desktop app is a Tauri 2.x application (Rust shell + WebKitGTK)
+# that spawns a bundled Java backend (JLink minimal JRE + Spring Boot JAR).
+#
+# For full-feature support (OCR, document conversion, etc.) we also bundle:
+#   - LibreOffice (writer, calc, impress) for format conversions
+#   - Tesseract OCR with English language data
+#   - jbig2enc for JBIG2 compression in OCR pipelines
+#   - Python 3 + opencv-python-headless, unoserver, WeasyPrint, pngquant
+#
+# To update: bump the version/tag in the stirling-pdf source, and update
+# the sha256 for the .deb asset on the GitHub release page.
+
+app-id: com.stirlingpdf.StirlingPDF
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.openjdk21
+
+command: stirling-pdf-wrapper
+
+finish-args:
+  # Display access (Wayland + X11 fallback)
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  # GPU acceleration for WebKitGTK rendering
+  - --device=dri
+  # Network access for optional server connection and updates
+  - --share=network
+  # Filesystem access for opening/saving PDFs
+  - --filesystem=home
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-download
+  - --filesystem=/tmp
+  # D-Bus access for desktop integration
+  - --socket=session-bus
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.secrets
+  # System tray / status notifier
+  - --talk-name=org.kde.StatusNotifierWatcher
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - /share/doc
+  - '*.la'
+  - '*.a'
+
+modules:
+  # =========================================================================
+  # 1. OpenJDK 21 (JRE for the Spring Boot backend)
+  # =========================================================================
+  - name: openjdk21
+    buildsystem: simple
+    build-commands:
+      - /usr/lib/sdk/openjdk21/install.sh
+
+  # =========================================================================
+  # 2. Tesseract OCR + English language data
+  # =========================================================================
+  - name: leptonica
+    buildsystem: autotools
+    post-install:
+      # jbig2enc checks for -llept (old name); create compat symlinks
+      - ln -sf libleptonica.so /app/lib/liblept.so
+      - ln -sf libleptonica.so.6 /app/lib/liblept.so.6
+    sources:
+      - type: archive
+        url: https://github.com/DanBloomberg/leptonica/releases/download/1.84.1/leptonica-1.84.1.tar.gz
+        sha256: 2b3e1254b1cca381e77c819b59ca99774ff43530209b9aeb511e1d46588a64f6
+    cleanup:
+      - /bin
+
+  - name: tesseract
+    buildsystem: autotools
+    config-opts:
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://github.com/tesseract-ocr/tesseract/archive/refs/tags/5.5.0.tar.gz
+        sha256: f2fb34ca035b6d087a42875a35a7a5c4155fa9979c6132365b1e5a28ebc3fc11
+
+  - name: tesseract-lang-eng
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 eng.traineddata /app/share/tessdata/eng.traineddata
+    sources:
+      - type: file
+        url: https://github.com/tesseract-ocr/tessdata_best/raw/main/eng.traineddata
+        sha256: 8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba
+        dest-filename: eng.traineddata
+
+  # =========================================================================
+  # 3. jbig2enc (JBIG2 compression for OCR)
+  # =========================================================================
+  - name: jbig2enc
+    buildsystem: autotools
+    sources:
+      - type: git
+        url: https://github.com/agl/jbig2enc.git
+        commit: b5a62d0504a62e454e4ddcf34cfee77b9c4f2be6
+
+  # =========================================================================
+  # 4. LibreOffice (for document conversion: docx->pdf, xlsx->pdf, etc.)
+  # =========================================================================
+  - name: libreoffice
+    buildsystem: simple
+    build-commands:
+      - bash install-libreoffice.sh LibreOffice_25.8.6_Linux_x86-64_deb.tar.gz /app
+    sources:
+      - type: file
+        url: https://download.documentfoundation.org/libreoffice/stable/25.8.6/deb/x86_64/LibreOffice_25.8.6_Linux_x86-64_deb.tar.gz
+        sha256: 90b083e6c8f860630ea2ac8558a2bed2756a4393c3f727aa7bd13b0bce85e8a9
+      - type: file
+        path: install-libreoffice.sh
+
+  # =========================================================================
+  # 5. Python dependencies (unoserver, opencv, WeasyPrint, pngquant)
+  # =========================================================================
+  - name: python-deps
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-index --find-links=. --prefix=/app --no-build-isolation
+          opencv-python-headless unoserver pngquant-cli WeasyPrint
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/03/a7/03aa61fbc3c5cbf99b44d158665f9b0dd3d8059be16c460208d9e385c837/brotli-1.2.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        sha256: 072e7624b1fc4d601036ab3f4f27942ef772887e876beff0301d261210bca97f
+      - type: file
+        url: https://files.pythonhosted.org/packages/78/2d/7fa73dfa841b5ac06c7b8855cfc18622132e365f5b81d02230333ff26e9e/cffi-2.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        sha256: 3e17ed538242334bf70832644a32a7aae3d83b57567f9fd60a26257e992b79ba
+      - type: file
+        url: https://files.pythonhosted.org/packages/21/0e/8459ca4413e1a21a06c97d134bfaf18adfd27cea068813dc0faae06cbf00/cssselect2-0.9.0-py3-none-any.whl
+        sha256: 6a99e5f91f9a016a304dd929b0966ca464bcfda15177b6fb4a118fc0fb5d9563
+      - type: file
+        url: https://files.pythonhosted.org/packages/9b/8a/99c8b3c3888c5c474c08dbfd7c8899786de9604b727fcefb055b42c84bba/fonttools-4.62.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        sha256: 149f7d84afca659d1a97e39a4778794a2f83bf344c5ee5134e09995086cc2392
+      - type: file
+        url: https://files.pythonhosted.org/packages/0a/0d/0e3ecece05b7a7e87ab9fb587855548da437a061326fff64a223b6dcb78a/numpy-2.4.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        sha256: 81f4a14bee47aec54f883e0cad2d73986640c1590eb9bfaaba7ad17394481e6e
+      - type: file
+        url: https://files.pythonhosted.org/packages/4b/33/b5db29a6c00eb8f50708110d8d453747ca125c8b805bc437b289dbdcc057/opencv_python_headless-4.13.0.92-cp37-abi3-manylinux_2_28_x86_64.whl
+        sha256: 0bd48544f77c68b2941392fcdf9bcd2b9cdf00e98cb8c29b2455d194763cf99e
+      - type: file
+        url: https://files.pythonhosted.org/packages/43/e3/fdc657359e919462369869f1c9f0e973f353f9a9ee295a39b1fea8ee1a77/pillow-12.2.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        sha256: 62f5409336adb0663b7caa0da5c7d9e7bdbaae9ce761d34669420c2a801b2780
+      - type: file
+        url: https://files.pythonhosted.org/packages/dd/f1/22296bfbaac1824542a44e188683d991eef421f545fc2331bec3a1d81c46/pngquant_cli-3.0.3-py3-none-manylinux_2_28_x86_64.whl
+        sha256: 7386b9efc909d5892f7d70c424f125fef6c47969ef424e2048a1189b3c57c7cb
+      - type: file
+        url: https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl
+        sha256: b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
+      - type: file
+        url: https://files.pythonhosted.org/packages/22/11/47efe2f66ba848a107adfd490b508f5c0cedc82127950553dca44d29e6c4/pydyf-0.12.1-py3-none-any.whl
+        sha256: ea25b4e1fe7911195cb57067560daaa266639184e8335365cc3ee5214e7eaadc
+      - type: file
+        url: https://files.pythonhosted.org/packages/7b/1f/c2142d2edf833a90728e5cdeb10bdbdc094dde8dbac078cee0cf33f5e11b/pyphen-0.17.2-py3-none-any.whl
+        sha256: 3a07fb017cb2341e1d9ff31b8634efb1ae4dc4b130468c7c39dd3d32e7c3affd
+      - type: file
+        url: https://files.pythonhosted.org/packages/60/45/c7b5c3168458db837e8ceab06dc77824e18202679d0463f0e8f002143a97/tinycss2-1.5.1-py3-none-any.whl
+        sha256: 3415ba0f5839c062696996998176c4a3751d18b7edaaeeb658c9ce21ec150661
+      - type: file
+        url: https://files.pythonhosted.org/packages/52/48/01695a036b695f83fea7aef6955d735db0f517b1c8e25ddb399ac0bdbcbf/tinyhtml5-2.1.0-py3-none-any.whl
+        sha256: 6e11cfff38515834268daf89d5f85bbde0b6dd02e8d9e212d1385c2289b89f0a
+      - type: file
+        url: https://files.pythonhosted.org/packages/b5/1d/c94f830a815260f0f53effdd17f8bd04c578d7423874eb93a07357708693/unoserver-3.6-py3-none-any.whl
+        sha256: 25c360fa194396a89cb79b4edd2735f8e4f0fd8531e59db3952114585bd7df05
+      - type: file
+        url: https://files.pythonhosted.org/packages/dd/dd/14eb73cea481ad8162d3b18a4850d4a84d6e804a22840cca207648532265/weasyprint-68.1-py3-none-any.whl
+        sha256: 4dc3ba63c68bbbce3e9617cb2226251c372f5ee90a8a484503b1c099da9cf5be
+      - type: file
+        url: https://files.pythonhosted.org/packages/f4/24/2a3e3df732393fed8b3ebf2ec078f05546de641fe1b667ee316ec1dcf3b7/webencodings-0.5.1-py2.py3-none-any.whl
+        sha256: a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78
+      - type: file
+        url: https://files.pythonhosted.org/packages/dd/6f/4a1a88edf9fa0ce102703f38ab4dfb285b7cd2dde5389184264ec759e06e/zopfli-0.4.1-cp310-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        sha256: fdfb7ce9f5de37a5b2f75dd2642fd7717956ef2a72e0387302a36d382440db07
+
+  # =========================================================================
+  # 6. Stirling PDF Desktop Application (Tauri .deb repack)
+  # =========================================================================
+  - name: stirling-pdf
+    buildsystem: simple
+    build-commands:
+      # Extract the .deb package to a staging directory
+      - ar x Stirling-PDF-linux-x86_64.deb
+      - mkdir -p _staging
+      - tar xf data.tar.* -C _staging
+      - |
+        # Copy the Tauri binary
+        find _staging -name 'stirling-pdf' -type f -executable \
+          -exec install -Dm755 {} /app/bin/stirling-pdf \;
+        # Copy libraries and resources
+        if [ -d _staging/usr/lib ]; then
+          cp -a _staging/usr/lib/* /app/lib/ 2>/dev/null || true
+        fi
+        if [ -d _staging/usr/share/icons ]; then
+          cp -a _staging/usr/share/icons/* /app/share/icons/ 2>/dev/null || true
+        fi
+        # Copy bundled JRE and JAR (Tauri bundles these under resources)
+        find _staging -name '*.jar' -exec cp {} /app/lib/ \; 2>/dev/null || true
+        find _staging -name 'jre' -type d -exec cp -a {} /app/lib/ \; 2>/dev/null || true
+
+      # Install the wrapper script, desktop file, icon, and AppStream metadata
+      - install -Dm755 stirling-pdf-wrapper.sh /app/bin/stirling-pdf-wrapper
+      - install -Dm644 com.stirlingpdf.StirlingPDF.desktop /app/share/applications/com.stirlingpdf.StirlingPDF.desktop
+      - install -Dm644 com.stirlingpdf.StirlingPDF.metainfo.xml /app/share/metainfo/com.stirlingpdf.StirlingPDF.metainfo.xml
+      - install -Dm644 com.stirlingpdf.StirlingPDF.svg /app/share/icons/hicolor/scalable/apps/com.stirlingpdf.StirlingPDF.svg
+
+    sources:
+      - type: file
+        url: https://github.com/Stirling-Tools/Stirling-PDF/releases/download/v2.7.3/Stirling-PDF-linux-x86_64.deb
+        sha256: 4fe3bf2361ecaf3973ff9a5add79777c8900e806bd88c92a3cd118b44ffdaa96
+        dest-filename: Stirling-PDF-linux-x86_64.deb
+
+      - type: file
+        path: stirling-pdf-wrapper.sh
+
+      - type: file
+        path: com.stirlingpdf.StirlingPDF.desktop
+
+      - type: file
+        path: com.stirlingpdf.StirlingPDF.metainfo.xml
+
+      - type: file
+        path: com.stirlingpdf.StirlingPDF.svg

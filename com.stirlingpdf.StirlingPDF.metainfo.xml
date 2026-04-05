@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.stirlingpdf.StirlingPDF</id>
+
+  <name>Stirling PDF</name>
+  <summary>Powerful, privacy-focused PDF editor and toolkit</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <developer id="com.stirlingpdf">
+    <name>Stirling Tools</name>
+  </developer>
+
+  <description>
+    <p>
+      Stirling PDF is a powerful, locally hosted PDF editing platform with 50+
+      tools for merging, splitting, converting, signing, redacting, compressing,
+      and performing OCR on PDF files — all without sending your documents to
+      external services.
+    </p>
+    <p>
+      The desktop application provides a native Linux experience with direct PDF
+      file association ("Open With"), offline processing for common operations,
+      and optional connection to a self-hosted server or Stirling Cloud for
+      advanced features like OCR and document format conversions.
+    </p>
+    <p>Key features include:</p>
+    <ul>
+      <li>Merge, split, rotate, and reorder PDF pages</li>
+      <li>Add visual and certificate-based digital signatures</li>
+      <li>Convert between PDF and other formats (Word, Excel, images, etc.)</li>
+      <li>OCR scanned documents with Tesseract</li>
+      <li>Compress PDFs to reduce file size</li>
+      <li>Add watermarks, headers, footers, and page numbers</li>
+      <li>Redact sensitive information</li>
+      <li>Fill and flatten PDF forms</li>
+      <li>Available in 40+ languages</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://www.stirlingpdf.com</url>
+  <url type="bugtracker">https://github.com/Stirling-Tools/Stirling-PDF/issues</url>
+  <url type="vcs-browser">https://github.com/Stirling-Tools/Stirling-PDF</url>
+  <url type="help">https://docs.stirlingpdf.com</url>
+
+  <launchable type="desktop-id">com.stirlingpdf.StirlingPDF.desktop</launchable>
+
+  <provides>
+    <mediatype>application/pdf</mediatype>
+  </provides>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#e8f5e9</color>
+    <color type="primary" scheme_preference="dark">#1b5e20</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Stirling PDF main interface showing available PDF tools</caption>
+      <image>https://www.stirlingpdf.com/img/stirling-screenshot.png</image>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="2.8.0" date="2026-03-25">
+      <description>
+        <p>Desktop login bypass, comment support, timestamps, and many new features.</p>
+      </description>
+    </release>
+    <release version="2.7.3" date="2026-03-19">
+      <description>
+        <p>Read aloud feature, annotation improvements, printing fixes, and bug fixes.</p>
+      </description>
+    </release>
+    <release version="2.7.0" date="2026-02-28">
+      <description>
+        <p>Auditing improvements, search bar for settings, and various enhancements.</p>
+      </description>
+    </release>
+  </releases>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+
+  <keywords>
+    <keyword>PDF</keyword>
+    <keyword>editor</keyword>
+    <keyword>merge</keyword>
+    <keyword>split</keyword>
+    <keyword>convert</keyword>
+    <keyword>OCR</keyword>
+    <keyword>sign</keyword>
+    <keyword>compress</keyword>
+    <keyword>watermark</keyword>
+    <keyword>redact</keyword>
+  </keywords>
+</component>
