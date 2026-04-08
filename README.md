@@ -2,6 +2,8 @@
 
 Flatpak packaging for [Stirling PDF](https://github.com/Stirling-Tools/Stirling-PDF). 
 
+Currently testing / incomplete. 
+
 Note: all this does is take the official .deb that Stirling releases and repackages it as a flatpak.
 It is an unofficial build not associated with the Stirling project.
 
